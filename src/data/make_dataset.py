@@ -2,7 +2,17 @@
 import click
 import logging
 from pathlib import Path
-from dotenv import find_dotenv, load_dotenv
+# from dotenv import find_dotenv, load_dotenv  
+
+import numpy as np
+import pandas as pd
+
+from sklearn.model_selection import train_test_split
+from sklearn import preprocessing
+
+
+def preprocess_data(data, labelencoder_dict):
+    data.loc[:,'MarketingTypeD'] = labelencoder_dict['MarketingTypeD'].transform(data.MarketingType)
 
 
 @click.command()
@@ -14,6 +24,23 @@ def main(input_filepath, output_filepath):
     """
     logger = logging.getLogger(__name__)
     logger.info('making final data set from raw data')
+
+    data = pd.read_csv(input_filepath)
+
+    historical = data[data.File_Type == 'Historical']
+    
+    labelencoder = {'MarketingTypeD': preprocessing.LabelEncoder().fit(historical.MarketingType)}
+    preprocess_data(data, labelencoder)
+    
+    # active = data[data.File_Type == 'Active']
+
+    historical.to_csv(output_filepath)
+    # active.to_csv(output_filepath)
+    
+    
+
+
+
 
 
 if __name__ == '__main__':
