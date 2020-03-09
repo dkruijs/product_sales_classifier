@@ -141,13 +141,15 @@ def compare_models(models, clf, data, X_test, y_test):
         The best performing model.
     """
 
-    # Updates area under the curve for new models
+    # Update area under the curve for new models
     for model in models:
         model.area_under_curve = get_model_auc(X_test, y_test, model)
 
     best_model = max(model, key=lambda model: model.area_under_curve)
 
     clf_auc = get_model_auc(X_test, y_test, clf)
+
+
 
     return None
 
