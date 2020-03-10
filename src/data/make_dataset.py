@@ -2,12 +2,8 @@
 import click
 import logging
 from pathlib import Path
-# from dotenv import find_dotenv, load_dotenv  
 
-import numpy as np
 import pandas as pd
-
-from sklearn.model_selection import train_test_split
 from sklearn import preprocessing
 
 
@@ -29,16 +25,14 @@ def main(input_filepath, output_filepath):
 
     historical = data[data.File_Type == 'Historical']
     
-    labelencoder = {'MarketingTypeD': preprocessing.LabelEncoder().fit(historical.MarketingType)}
-    preprocess_data(data, labelencoder)
+    label_encoder = {'MarketingTypeD': preprocessing.LabelEncoder().fit(historical.MarketingType)}
+    preprocess_data(historical, label_encoder)
     
     # active = data[data.File_Type == 'Active']
 
-    historical.to_csv(output_filepath)
+    historical.to_csv(output_filepath, index=False)
     # active.to_csv(output_filepath)
     
-    
-
 
 if __name__ == '__main__':
     log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
@@ -50,5 +44,8 @@ if __name__ == '__main__':
     # find .env automagically by walking up directories until it's found, then
     # load up the .env entries as environment variables
     # load_dotenv(find_dotenv())
+
+    # import os
+    # main(os.path.join(project_dir, "data", "raw", "SalesKaggle3.csv"), os.path.join(project_dir, "data", "processed", "historical.csv"))
 
     main()
