@@ -106,8 +106,10 @@ def main(input_filepath, output_filepath):
     logger = logging.getLogger(__name__)
     logger.info('making final data set from raw data')
 
+    project_dir = Path(__file__).resolve().parents[2]
+
     # Train a new version of the model 
-    data = get_dataset(input_filepath)
+    data = get_dataset(os.path.join(project_dir, input_filepath))
 
     x_cols = ['ReleaseNumber', 'New_Release_Flag', 'StrengthFactor',
               'PriceReg', 'ReleaseYear', 'ItemCount', 'LowUserPrice', 'LowNetPrice',
@@ -142,7 +144,7 @@ def main(input_filepath, output_filepath):
         pickle.dump(clf, file)
 
     # Add to model collection and compare for best model
-    models = get_models(output_filepath)
+    models = get_models(os.path.join(project_dir, output_filepath))
 
     clf_model = Model(pkl_filename, clf, get_model_auc(X_test, y_test, clf), plot_filename)
     clf_model.add_to_metadata(output_filepath)

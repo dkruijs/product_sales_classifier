@@ -1,1 +1,5 @@
 /venv
+/models/metadata.json
+/models/model-*.png
+/models/model-*.pkl
+/models/production/model-*.pkl

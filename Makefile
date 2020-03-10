@@ -10,6 +10,9 @@ PROFILE = default
 PROJECT_NAME = sales_demo_product_sales_classifier
 PYTHON_INTERPRETER = python3
 
+# DATA_URL = https://www.kaggle.com/flenderson/sales-analysis
+DATA_FILE1 = SalesKaggle3.csv
+
 ifeq (,$(shell which conda))
 HAS_CONDA=False
 else
@@ -25,9 +28,29 @@ requirements: test_environment
 	$(PYTHON_INTERPRETER) -m pip install -U pip setuptools wheel
 	$(PYTHON_INTERPRETER) -m pip install -r requirements.txt
 
+# ## Visualize result
+# visual: predict
+# 	$(PYTHON_INTERPRETER) src/visualization/visualize.py models/ data/processed
+
+## Test model
+predict: model
+	$(PYTHON_INTERPRETER) src/models/serve_prediction.py models/
+
+## Train Model
+train: data
+	$(PYTHON_INTERPRETER) src/models/train_model.py data/processed models/
+
+# ## Feature Engineering
+# features: data
+# 	$(PYTHON_INTERPRETER) src/features/build_features.py data/processed data/processed
+
+# ## Get Raw Data
+# getdata: #requirements # $(PYTHON_INTERPRETER) -c "import src.api.api as api; api.get_fresh_data_make(\"$(DATA_URL)\", \"$(DATA_FILE1)\", \"$(DATA_FILE2)\", \"$(DATA_FILE3)\")"
+# 	$(PYTHON_INTERPRETER) src/api/api.py $(DATA_URL) $(DATA_FILE1) $(DATA_FILE2) $(DATA_FILE3)
+
 ## Make Dataset
-data: requirements
-	$(PYTHON_INTERPRETER) src/data/make_dataset.py data/raw data/processed
+data: #getdata
+	$(PYTHON_INTERPRETER) src/data/make_dataset.py data/raw/$(DATA_FILE1) data/processed/historical.csv
 
 ## Delete all compiled Python files
 clean:
@@ -66,7 +89,7 @@ endif
 		@echo ">>> New conda env created. Activate with:\nsource activate $(PROJECT_NAME)"
 else
 	$(PYTHON_INTERPRETER) -m pip install -q virtualenv virtualenvwrapper
-	@echo ">>> Installing virtualenvwrapper if not already installed.\nMake sure the following lines are in shell startup file\n\
+	@echo ">>> Installing virtualenvwrapper if not already intalled.\nMake sure the following lines are in shell startup file\n\
 	export WORKON_HOME=$$HOME/.virtualenvs\nexport PROJECT_HOME=$$HOME/Devel\nsource /usr/local/bin/virtualenvwrapper.sh\n"
 	@bash -c "source `which virtualenvwrapper.sh`;mkvirtualenv $(PROJECT_NAME) --python=$(PYTHON_INTERPRETER)"
 	@echo ">>> New virtualenv created. Activate with:\nworkon $(PROJECT_NAME)"
