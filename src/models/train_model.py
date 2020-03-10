@@ -1,27 +1,23 @@
 # -*- coding: utf-8 -*-
 import os
 import pickle
-import click
 import logging
-import json
-import shutil
 import glob
 from datetime import datetime
 from pathlib import Path
 
+import click
 import pandas as pd
 import numpy as np
 
-from classes.model import Model
-
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
-
 from sklearn.metrics import roc_curve, auc, precision_recall_curve
-import matplotlib.pyplot as plt
-
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.metrics import plot_confusion_matrix
+import matplotlib.pyplot as plt
+
+from model import Model, initialize_metadata, get_models, move_to_production, compare_models, get_model_auc
 
 
 def classifier_model_plot(X_test, y_test, clf, figsize, output_filepath, name):
@@ -85,12 +81,11 @@ def classifier_model_plot(X_test, y_test, clf, figsize, output_filepath, name):
     fig.savefig(os.path.join(output_filepath, name))
 
 
-# TODO omzetten naar het zoeken en concateneren van alle nieuw aangeleverde data files
 def get_dataset(input_filepath):
     """
     Retrieves all data files and creates a master dataset
     """
-    datafile_listing = glob.glob( os.path.join(input_filepath, '*.csv'))
+    datafile_listing = glob.glob(os.path.join(input_filepath, '*.csv'))
     df = pd.DataFrame()
 
     for filename in datafile_listing:
@@ -100,88 +95,9 @@ def get_dataset(input_filepath):
     return df
 
 
-def get_models(file_path):
-    """
-    Retrieves all model metadata and re-instantiates all model objects from file.
-    """
-    # if `metadata.json` does not exist, initialize it:
-    if not os.path.isfile(os.path.join(file_path, "models.json")):
-        with open(os.path.join(file_path, "metadata.json"), "w") as file:
-            file.write('{"models": []}')
-
-    with open(os.path.join(file_path, "metadata.json"), "r") as file:
-        metadata = json.load(file)
-
-    resulting_models = []
-    for model in metadata["models"]:
-        with open(os.path.join(file_path, model['file_name']), "rb") as file:
-            model_object = pickle.load(file)
-        resulting_models.append(
-            Model(model.file_name,
-                  model_object,
-                  model.area_under_curve
-                  ))
-
-    return resulting_models
-
-
-def get_model_auc(X_test, y_test, clf):
-    """
-    Calculates the Area Under the Curve for a model.
-    """
-    print(len(X_test))
-    print(len(y_test))
-
-    y_pred = clf.predict_proba(X_test)
-    y_pred = y_pred[:, 1]
-
-    # fpr, tpr, thresholds = roc_curve(y_test, y_pred, pos_label=1)
-    fpr, tpr = roc_curve(y_test, y_pred, pos_label=1)
-    roc_auc = auc(fpr, tpr)
-
-    return roc_auc
-
-
-def compare_models(models, clf, data, X_test, y_test):
-    """
-    Compares AUC scores for all pre-existing models, and the new one, and 
-    returns the best performing model.
-
-    models:
-        List of previously created Model instances, found in the 'models' folder.
-    clf:
-        The newest classifier model.
-
-    returns:
-        The best performing model.
-    """
-
-    # Update area under the curve for new models
-    for model in models:
-        model.area_under_curve = get_model_auc(X_test, y_test, model)
-
-    best_model = max(model, key=lambda model: model.area_under_curve)
-
-    return best_model
-
-
-def move_to_production(output_filepath, model):
-    """Moves a model binary into production."""
-
-    source = os.path.join(output_filepath, model.file_name)
-    destination = os.path.join(output_filepath, 'production', model.file_name)
-
-    # delete contents
-    for file in os.scandir(destination):
-        if file.name.endswith(".pkl"):
-            os.unlink(file.path)
-
-    shutil.copyfile(source, destination)
-
-
-# @click.command()
-# @click.argument('input_filepath', type=click.Path(exists=True))
-# @click.argument('output_filepath', type=click.Path())
+@click.command()
+@click.argument('input_filepath', type=click.Path(exists=True))
+@click.argument('output_filepath', type=click.Path())
 def main(input_filepath, output_filepath):
     """
     This module trains the Random Forest Classifier model if it does not yet exist,
@@ -214,11 +130,11 @@ def main(input_filepath, output_filepath):
     clf.fit(X_train, y_train)
 
     # Evaluate model
-    # TODO versioning van plots
     now = datetime.now()  # current date and time
     date_time = now.strftime("%m-%d-%Y_%H-%M-%S")
 
-    classifier_model_plot(X_test, y_test, clf, (20, 10), output_filepath, f'model-{date_time}-evaluation-plots.png')
+    plot_filename = f'model-{date_time}-evaluation-plots.png'
+    classifier_model_plot(X_test, y_test, clf, (20, 10), output_filepath, plot_filename)
 
     # Save to file
     pkl_filename = f"model-{date_time}.pkl"
@@ -226,25 +142,23 @@ def main(input_filepath, output_filepath):
         pickle.dump(clf, file)
 
     # Add to model collection and compare for best model
-    # TODO: functies get_models() en compare_models() methodes maken van Model class?
     models = get_models(output_filepath)
 
-    # TODO: gaat hier alles goed als models = [] ?
-    clf_model = Model(pkl_filename, clf, get_model_auc(X_test, y_train, clf))
+    clf_model = Model(pkl_filename, clf, get_model_auc(X_test, y_test, clf), plot_filename)
     clf_model.add_to_metadata(output_filepath)
 
     if len(models) > 0:
         models.append(clf_model)
-        best_model = compare_models(models, clf, data, X_test, y_test)
+        best_model = compare_models(models, X_test, y_test)
     else:
         best_model = clf_model
 
-    if best_model.filename == pkl_filename:
+    if best_model.file_name == pkl_filename:
         logger.info(f'Currently trained model {pkl_filename} was deemed best model! Moved model to production.')
     else:
         logger.info(f'Earlier trained model {best_model.file_name} was deemed best model. Moved model to production.')
 
-    print(best_model)
+    logger.info(f'\nThe best model\'s properties are as follows: \n \n {best_model}')
 
     move_to_production(output_filepath, best_model)
 
@@ -257,7 +171,8 @@ if __name__ == '__main__':
     # load up the .env entries as environment variables
     # load_dotenv(find_dotenv())
 
-    print(project_dir)
-    inf = os.path.join(project_dir, "data", "processed")
-    outf = os.path.join(project_dir, "models")
-    main(inf, outf)
+    # print(project_dir)
+    # inf = os.path.join(project_dir, "data", "processed")
+    # outf = os.path.join(project_dir, "models")
+    # main(inf, outf)
+    main()
