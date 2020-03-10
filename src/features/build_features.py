@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import click
 import logging
+import os
 from pathlib import Path
 
 import pandas as pd
@@ -16,4 +17,8 @@ def main(input_filepath, output_filepath):
     historical = pd.read_csv(input_filepath)
     historical['added_feature'] = "w"
 
-    historical.to_csv(output_filepath)
+    historical.to_csv(output_filepath, index=False)
+
+
+if __name__ == "__main__": 
+    main()

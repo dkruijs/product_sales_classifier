@@ -37,12 +37,12 @@ predict: model
 	$(PYTHON_INTERPRETER) src/models/serve_prediction.py models/
 
 ## Train Model
-train: data
+train: features
 	$(PYTHON_INTERPRETER) src/models/train_model.py data/processed models/
 
-# ## Feature Engineering
-# features: data
-# 	$(PYTHON_INTERPRETER) src/features/build_features.py data/processed data/processed
+## Feature Engineering
+features: data
+	$(PYTHON_INTERPRETER) src/features/build_features.py data/interim/historical.csv data/processed/historical.csv
 
 # ## Get Raw Data
 # getdata: #requirements # $(PYTHON_INTERPRETER) -c "import src.api.api as api; api.get_fresh_data_make(\"$(DATA_URL)\", \"$(DATA_FILE1)\", \"$(DATA_FILE2)\", \"$(DATA_FILE3)\")"
@@ -50,7 +50,7 @@ train: data
 
 ## Make Dataset
 data: #getdata
-	$(PYTHON_INTERPRETER) src/data/make_dataset.py data/raw/$(DATA_FILE1) data/processed/historical.csv
+	$(PYTHON_INTERPRETER) src/data/make_dataset.py data/raw/$(DATA_FILE1) data/interim/historical.csv
 
 ## Delete all compiled Python files
 clean:

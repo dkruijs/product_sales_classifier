@@ -3,3 +3,4 @@
 /models/model-*.png
 /models/model-*.pkl
 /models/production/model-*.pkl
+/data
