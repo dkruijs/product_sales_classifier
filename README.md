@@ -3,7 +3,7 @@ Sales demo product sales classifier
 
 Using a Kaggle dataset, we build a model to classify inventory products to keep selling or not; focus is on building an end-to-end product for demonstration.
 
-Made in collaboration with (Christian te Riet)[https://bitbucket.org/%7Bfe98a1ee-09e4-4d32-abb5-fce74ef6ca74%7D/].
+Made in collaboration with [Christian te Riet](https://bitbucket.org/%7Bfe98a1ee-09e4-4d32-abb5-fce74ef6ca74%7D/).
 
 Project Organization
 ------------
